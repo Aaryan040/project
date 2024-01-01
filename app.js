@@ -37,7 +37,8 @@ mongoose.connect('mongodb://127.0.0.1:27017/userDB', {useNewUrlParser : true});
 const userSchema = new mongoose.Schema({
     email : String,
     password : String,
-    googleId : String
+    googleId : String,
+    secret : String
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -97,14 +98,30 @@ app.get('/login', (req, res)=>{
     res.render('login');
 })
 
-app.get('/secrets', (req, res)=>{
+app.get('/secrets', (req, res) => {
+    user.find({ secret: { $ne: null } })
+        .then(foundUsers => {
+            if (foundUsers && foundUsers.length > 0) {
+                res.render('secrets', { usersWithSecret: foundUsers });
+            } else {
+                res.render('secrets', { usersWithSecret: [] }); // Handle case when no users with secrets are found
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            // Handle the error appropriately
+            res.status(500).send('Internal Server Error');
+        });
+});
+
+app.get('/submit', (req, res)=>{
     if(req.isAuthenticated()){
-        res.render('secrets');
+        res.render('submit');
     }
     else{
         res.redirect('/login');
-    }
-});
+    } 
+})
 
 app.get('/logout', (req, res)=>{
     req.logout(function(err) {
@@ -143,6 +160,26 @@ app.post('/login', (req, res)=>{
             });
         }
     })
+})
+
+app.post('/submit', (req, res)=>{
+    const submittedSecret = req.body.secret;
+    console.log(req.user.id);
+
+    user.findById(req.user.id)
+    .then(foundUser => {
+        if (foundUser) {
+            foundUser.secret = submittedSecret;
+            return foundUser.save();
+        }
+    })
+    .then(() => {
+        res.redirect('/secrets');
+    })
+    .catch(err => {
+        console.error(err);
+        // Handle the error appropriately
+    });
 })
 
 app.listen(port, ()=>{
