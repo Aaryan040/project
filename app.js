@@ -68,7 +68,6 @@ passport.use(new GoogleStrategy({
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
   },
   function(accessToken, refreshToken, profile, cb) {
-    console.log(profile);
     user.findOrCreate({ googleId: profile.id }, function (err, User) {
       return cb(err, User);
     });
